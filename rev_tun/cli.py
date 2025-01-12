@@ -1,12 +1,12 @@
 from pathlib import Path
-from typing import Annotated, Iterable
+from typing import Annotated
 
 import typer
 from register import register_lookup
 from rich.console import Console
 from typer import Typer
 
-from rev_tun.config import Config
+from rev_tun.config import load_configs
 from rev_tun.register import RegisterType
 
 app = Typer()
@@ -38,7 +38,7 @@ def main(
             "--conf-dir",
             help="configuration directory path",
         ),
-    ] = Path("/etc/supervisor/rev-tun"),
+    ] = Path("/etc/rev-tun"),
     log_dir_path: Annotated[
         Path,
         typer.Option(
@@ -47,20 +47,14 @@ def main(
         ),
     ] = Path("/var/log/rev-tun"),
 ):
-    config_paths: Iterable[Path] = (
-        (conf_dir_path / f"{config_name}.toml",)
-        if config_name
-        else (path for path in conf_dir_path.iterdir() if path.suffix == ".toml")
-    )
-
+    configs = load_configs(conf_dir_path)
     register = register_lookup[register_type]
-    for config_path in config_paths:
+    for config in configs:
         try:
-            config = Config.load(config_path)
             register.register(
                 config,
                 log_dir_path=log_dir_path,
             )
             console.print(f"{config.name} registered")
         except Exception as e:
-            err_console.print(f"{config_path}: {e}")
+            err_console.print(f"config {config.name} failed to register: {e}")

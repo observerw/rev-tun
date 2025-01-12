@@ -32,6 +32,15 @@ wheels = [
 ]
 
 [[package]]
+name = "deepmerge"
+version = "2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/3a/b0ba594708f1ad0bc735884b3ad854d3ca3bdc1d741e56e40bbda6263499/deepmerge-2.0.tar.gz", hash = "sha256:5c3d86081fbebd04dd5de03626a0607b809a98fb6ccba5770b62466fe940ff20", size = 19890 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2d/82/e5d2c1c67d19841e9edc74954c827444ae826978499bde3dfc1d007c8c11/deepmerge-2.0-py3-none-any.whl", hash = "sha256:6de9ce507115cff0bed95ff0ce9ecc31088ef50cbdf09bc90a09349a318b3d00", size = 13475 },
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -119,6 +128,7 @@ name = "rev-tun"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "deepmerge" },
     { name = "pydantic" },
     { name = "rich" },
     { name = "tomli" },
@@ -127,6 +137,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "deepmerge", specifier = ">=2.0" },
     { name = "pydantic", specifier = ">=2.10.5" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "tomli", specifier = ">=2.2.1" },

@@ -1,10 +1,12 @@
 from collections.abc import Iterable
+from copy import deepcopy
 from enum import Enum
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Self
 
 import tomli
+from deepmerge import always_merger
 from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
 from pydantic.networks import IPvAnyAddress
 
@@ -64,7 +66,16 @@ class Ports(RootModel):
         return len(self.root) == len(remote_ports.root)
 
 
-class ServiceConfig(ConfigModel):
+class ServiceConfigOptions(ConfigModel):
+    forwarding_mode: ForwardingMode = Field(
+        default=ForwardingMode.remote,
+        description="forwarding mode",
+    )
+
+
+class ServiceConfig(ServiceConfigOptions):
+    enable: bool = Field(default=True, description="enable service")
+
     local_ports: Ports = Field(description="local ports")
     local_addr: IPvAnyAddress = Field(
         default=IPv4Address("127.0.0.1"),
@@ -74,10 +85,6 @@ class ServiceConfig(ConfigModel):
     remote_addr: IPvAnyAddress = Field(
         default=IPv4Address("127.0.0.1"),
         description="remote address",
-    )
-    forwarding_mode: ForwardingMode = Field(
-        default=ForwardingMode.remote,
-        description="forwarding mode",
     )
 
     def __str__(self) -> str:
@@ -91,6 +98,17 @@ class ServiceConfig(ConfigModel):
         return " ".join(
             transform(self.forwarding_mode, local, remote)
             for local, remote in self.local_ports.match(self.remote_ports)
+        )
+
+
+class ServicesConfig(ServiceConfigOptions):
+    services: dict[str, ServiceConfig] = {}  # TODO: add service default values
+
+    def __str__(self) -> str:
+        return " ".join(
+            str(service)  #
+            for service in self.services.values()
+            if service.enable
         )
 
 
@@ -155,19 +173,22 @@ class ServerConfig(ConfigModel):
 
 class Config(ConfigModel):
     name: str = Field(description="config name from file")
+
     server: ServerConfig
     connection: ConnectionConfig = ConnectionConfig()
-    ssh: SSHConfig = SSHConfig()
-    services: dict[str, ServiceConfig] = Field(default_factory=dict)
+    ssh_config: SSHConfig = SSHConfig()
+    services: dict[str, ServiceConfig] = {}
 
     @classmethod
-    def load(cls, config_path: Path) -> Self:
+    def load(cls, config_path: Path, default: dict | None = None) -> Self:
         if not config_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
         with config_path.open("rb") as f:
             try:
                 raw_config = tomli.load(f)
+                if default:
+                    raw_config = always_merger.merge(default, raw_config)
                 raw_config["name"] = config_path.stem
 
                 return cls.model_validate(raw_config)
@@ -178,6 +199,25 @@ class Config(ConfigModel):
         services = " ".join(
             str(service)  #
             for service in self.services.values()
+            if service.enable
         )
 
-        return f"ssh {self.server} {self.ssh} {services}"
+        return f"ssh {self.server} {self.ssh_config} {services}"
+
+
+def load_configs(conf_dir_path: Path) -> Iterable[Config]:
+    default_config_path = conf_dir_path / "default.toml"
+    config_paths = (path for path in conf_dir_path.iterdir() if path.suffix == ".toml")
+
+    default_config = (
+        tomli.loads(default_config_path.read_text())
+        if default_config_path.exists()
+        else None
+    )
+    return (
+        Config.load(
+            config_path,
+            deepcopy(default_config),
+        )
+        for config_path in config_paths
+    )

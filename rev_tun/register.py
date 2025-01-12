@@ -8,19 +8,18 @@ from rev_tun.config import Config
 from rev_tun.utils import check_root
 
 
-class Register(ABC):
+class Registrar(ABC):
     @abstractmethod
     def register(self, config: Config, *, log_dir_path: Path): ...
 
 
-class RegisterSupervisor(Register):
+class SupervisorRegistrar(Registrar):
     def register(self, config: Config, *, log_dir_path: Path) -> None:
         """Register the SSH tunnel as a supervisor program"""
 
         check_root()
 
-        sv_conf_dir_path = Path("/etc/supervisor/conf.d")
-        if not sv_conf_dir_path.exists():
+        if not (sv_conf_dir_path := Path("/etc/supervisor/conf.d")).exists():
             raise FileNotFoundError("Supervisor config directory not found")
 
         name = f"rev-tun-{config.name}"
@@ -46,7 +45,7 @@ class RegisterSupervisor(Register):
             raise RuntimeError("Failed to update supervisor")
 
 
-class RegisterSystemd(Register):
+class SystemdRegistrar(Registrar):
     def register(self, config: Config, *, log_dir_path: Path) -> None:
         """Register the SSH tunnel as a systemd service"""
 
@@ -89,7 +88,7 @@ class RegisterSystemd(Register):
             raise RuntimeError("Failed to update systemd service")
 
 
-class RegisterConsole(Register):
+class ConsoleRegistrar(Registrar):
     def register(self, config: Config, *, log_dir_path: Path) -> None:
         """Run the SSH tunnel command directly with retry logic"""
         cmd = str(config).split()
@@ -131,8 +130,8 @@ class RegisterType(str, Enum):
     console = "console"
 
 
-register_lookup: dict[RegisterType, Register] = {
-    RegisterType.supervisor: RegisterSupervisor(),
-    RegisterType.systemd: RegisterSystemd(),
-    RegisterType.console: RegisterConsole(),
+register_lookup: dict[RegisterType, Registrar] = {
+    RegisterType.supervisor: SupervisorRegistrar(),
+    RegisterType.systemd: SystemdRegistrar(),
+    RegisterType.console: ConsoleRegistrar(),
 }

@@ -2,11 +2,11 @@ import os
 import re
 from typing import Literal
 
-NamingStyle = Literal["snake", "kebab", "camel", "pascal", "constant"]
+type NamingStyle = Literal["snake", "kebab", "camel", "pascal", "constant"]
 
 
 def convert_to(name: str, style: NamingStyle) -> str:
-    words = []
+    words: list[str]
 
     if "-" in name:
         words = name.split("-")

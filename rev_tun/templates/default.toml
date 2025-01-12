@@ -1,0 +1,14 @@
+[server]
+user = "root"            # SSH user
+no-remote-command = true # ssh -N option
+disable-tty = true       # ssh -T option
+
+[connection]
+retry = 3 # retry 3 times
+
+[ssh-config]
+server-alive-interval = 60 # alive signal every 60 seconds
+server-alive-count-max = 3 # 3 times of no response
+
+[services]
+forwarding-mode = "remote" # remote forwarding mode

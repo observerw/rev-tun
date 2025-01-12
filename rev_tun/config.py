@@ -1,6 +1,9 @@
+import os
+import shutil
 from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
+from importlib import resources as res
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Self
@@ -10,6 +13,8 @@ from deepmerge import always_merger
 from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
 from pydantic.networks import IPvAnyAddress
 
+import rev_tun
+import rev_tun.templates
 from rev_tun.const import options
 from rev_tun.utils import convert_to
 
@@ -221,3 +226,25 @@ def load_configs(conf_dir_path: Path) -> Iterable[Config]:
         )
         for config_path in config_paths
     )
+
+
+def init() -> Path:
+    """Initialize the configuration directory."""
+    if os.geteuid() == 0:
+        # Running as root
+        config_dir_path = Path("/etc/rev-tun")
+    else:
+        # Running as normal user
+        config_dir_path = Path.home() / ".rev-tun"
+
+    config_dir_path.mkdir(parents=True, exist_ok=True)
+    (config_dir_path / "conf.d").mkdir(exist_ok=True)
+
+    # Copy default config if not exists
+    default_config_path = config_dir_path / "default.toml"
+
+    if not default_config_path.exists():
+        with res.as_file(res.files(rev_tun.templates)) as template_path:
+            shutil.copy(template_path, default_config_path)
+
+    return config_dir_path

@@ -6,7 +6,7 @@ from register import register_lookup
 from rich.console import Console
 from typer import Typer
 
-from rev_tun.config import load_configs
+from rev_tun.config import init, load_configs
 from rev_tun.register import RegisterType
 
 app = Typer()
@@ -38,7 +38,7 @@ def main(
             "--conf-dir",
             help="configuration directory path",
         ),
-    ] = Path("/etc/rev-tun"),
+    ] = init(),
     log_dir_path: Annotated[
         Path,
         typer.Option(

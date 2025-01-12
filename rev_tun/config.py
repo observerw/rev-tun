@@ -1,10 +1,7 @@
-import os
-import subprocess
 from collections.abc import Iterable
 from enum import Enum
 from ipaddress import IPv4Address
 from pathlib import Path
-from textwrap import dedent
 from typing import Any, Self
 
 import tomli
@@ -85,12 +82,11 @@ class ServiceConfig(ConfigModel):
 
     def __str__(self) -> str:
         def transform(mode: ForwardingMode, local: int, remote: int) -> str:
-            option = {
-                ForwardingMode.local: "-L",
-                ForwardingMode.remote: "-R",
-            }[mode]
-
-            return f"{option} {self.local_addr}:{local}:{self.remote_addr}:{remote}"
+            match mode:
+                case ForwardingMode.local:
+                    return f"-L {self.local_addr}:{local}:{self.remote_addr}:{remote}"
+                case ForwardingMode.remote:
+                    return f"-R {self.remote_addr}:{remote}:{self.local_addr}:{local}"
 
         return " ".join(
             transform(self.forwarding_mode, local, remote)
@@ -185,35 +181,3 @@ class Config(ConfigModel):
         )
 
         return f"ssh {self.server} {self.ssh} {services}"
-
-    def register(self, *, log_dir_path: Path) -> None:
-        """Register the SSH tunnel as a supervisor program"""
-
-        if os.geteuid() != 0:
-            raise PermissionError("This operation requires root privileges")
-
-        sv_conf_dir_path = Path("/etc/supervisor/conf.d")
-        if not sv_conf_dir_path.exists():
-            raise FileNotFoundError("Supervisor config directory not found")
-
-        name = f"rev-tun-{self.name}"
-
-        config_content = dedent(
-            f"""
-            [program:{name}]
-            command={self}
-            autostart=true
-            autorestart=true
-            startretries={self.connection.retry}
-            stderr_logfile={log_dir_path / f"{name}.err.log"}
-            stdout_logfile={log_dir_path / f"{name}.out.log"}
-            """
-        )
-        conf_file = sv_conf_dir_path / f"{name}.conf"
-        conf_file.write_text(config_content)
-
-        try:
-            subprocess.run(["supervisorctl", "update"], check=True)
-            subprocess.run(["supervisorctl", "restart", name], check=True)
-        except subprocess.CalledProcessError:
-            raise RuntimeError("Failed to update supervisor")

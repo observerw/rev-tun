@@ -1,3 +1,4 @@
+import os
 import re
 from typing import Literal
 
@@ -29,3 +30,8 @@ def convert_to(name: str, style: NamingStyle) -> str:
             return "_".join(word.upper() for word in words)
         case _:
             raise ValueError(f"Unsupported naming style: {style}")
+
+
+def check_root():
+    if os.geteuid() != 0:
+        raise PermissionError("Root privileges are required")

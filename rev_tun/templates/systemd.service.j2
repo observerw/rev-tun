@@ -1,0 +1,16 @@
+[Unit]
+Description=Reverse tunnel service for {{ name }}
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={{ command }}
+Restart=always
+RestartSec=60
+StartLimitInterval=0
+StartLimitBurst={{ retry }}
+StandardError=append:{{ log_dir }}/{{ name }}.err.log
+StandardOutput=append:{{ log_dir }}/{{ name }}.out.log
+
+[Install]
+WantedBy=multi-user.target

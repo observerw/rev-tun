@@ -1,6 +1,12 @@
 import os
 import re
+from copy import deepcopy
 from typing import Literal
+
+import jinja2
+from deepmerge import always_merger
+
+import rev_tun
 
 type NamingStyle = Literal["snake", "kebab", "camel", "pascal", "constant"]
 
@@ -32,6 +38,15 @@ def convert_to(name: str, style: NamingStyle) -> str:
             raise ValueError(f"Unsupported naming style: {style}")
 
 
-def check_root():
-    if os.geteuid() != 0:
+def check_root(raise_exception: bool = True) -> bool:
+    if (is_root := os.geteuid() != 0) and raise_exception:
         raise PermissionError("Root privileges are required")
+
+    return is_root
+
+
+def merge(base: dict, update: dict) -> dict:
+    return always_merger.merge(deepcopy(base), update)
+
+
+template_env = jinja2.Environment(loader=jinja2.PackageLoader(rev_tun.__name__))

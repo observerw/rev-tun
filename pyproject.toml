@@ -7,6 +7,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "deepmerge>=2.0",
+    "jinja2>=3.1.5",
     "pydantic>=2.10.5",
     "rich>=13.9.4",
     "tomli>=2.2.1",

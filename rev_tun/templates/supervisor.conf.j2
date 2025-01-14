@@ -1,0 +1,7 @@
+[program:{{ name }}]
+command={{ command }}
+autostart=true
+autorestart=true
+startretries={{ retry }}
+stderr_logfile={{ log_dir }}/{{ name }}.err.log
+stdout_logfile={{ log_dir }}/{{ name }}.out.log

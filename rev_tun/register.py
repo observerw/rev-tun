@@ -2,7 +2,8 @@ import subprocess
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from textwrap import dedent
+
+from utils import template_env
 
 from rev_tun.config import Config
 from rev_tun.utils import check_root
@@ -24,23 +25,27 @@ class SupervisorRegistrar(Registrar):
 
         name = f"rev-tun-{config.name}"
 
-        config_content = dedent(
-            f"""
-            [program:{name}]
-            command={config}
-            autostart=true
-            autorestart=true
-            startretries={config.connection.retry}
-            stderr_logfile={log_dir_path / f"{name}.err.log"}
-            stdout_logfile={log_dir_path / f"{name}.out.log"}
-            """
-        ).strip()
+        # 加载模板
+
+        template = template_env.get_template("supervisor.conf.j2")
+
+        # 渲染模板
+        config_content = template.render(
+            name=name,
+            command=f"ssh {config}",
+            retry=config.connection.retry,
+            log_dir=log_dir_path,
+        )
+
         conf_file = sv_conf_dir_path / f"{name}.conf"
         conf_file.write_text(config_content)
 
         try:
-            subprocess.run(["supervisorctl", "update"], check=True)
-            subprocess.run(["supervisorctl", "restart", name], check=True)
+            for cmd in [
+                ["supervisorctl", "update"],
+                ["supervisorctl", "restart", name],
+            ]:
+                subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError:
             raise RuntimeError("Failed to update supervisor")
 
@@ -56,34 +61,26 @@ class SystemdRegistrar(Registrar):
             raise FileNotFoundError("Systemd directory not found")
 
         name = f"rev-tun-{config.name}"
-        service_content = dedent(
-            f"""
-            [Unit]
-            Description=Reverse tunnel service for {config.name}
-            After=network.target
-            
-            [Service]
-            Type=simple
-            ExecStart={config}
-            Restart=always
-            RestartSec=60
-            StartLimitInterval=0
-            StartLimitBurst={config.connection.retry}
-            StandardError=append:{log_dir_path / f"{name}.err.log"}
-            StandardOutput=append:{log_dir_path / f"{name}.out.log"}
-            
-            [Install]
-            WantedBy=multi-user.target
-            """
-        ).strip()
+
+        template = template_env.get_template("systemd.service.j2")
+
+        service_content = template.render(
+            name=config.name,
+            command=f"ssh {config}",
+            retry=config.connection.retry,
+            log_dir=log_dir_path,
+        )
 
         service_file = systemd_dir_path / f"{name}.service"
         service_file.write_text(service_content)
 
         try:
-            subprocess.run(["systemctl", "daemon-reload"], check=True)
-            subprocess.run(["systemctl", "enable", name], check=True)
-            subprocess.run(["systemctl", "restart", name], check=True)
+            for cmd in [
+                ["systemctl", "daemon-reload"],
+                ["systemctl", "enable", name],
+                ["systemctl", "restart", name],
+            ]:
+                subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError:
             raise RuntimeError("Failed to update systemd service")
 
@@ -91,7 +88,7 @@ class SystemdRegistrar(Registrar):
 class ConsoleRegistrar(Registrar):
     def register(self, config: Config, *, log_dir_path: Path) -> None:
         """Run the SSH tunnel command directly with retry logic"""
-        cmd = str(config).split()
+        cmd = config.command
 
         log_dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -101,7 +98,7 @@ class ConsoleRegistrar(Registrar):
                     print(f"Retrying ({attempt}/{config.connection.retry})...")
 
                 process = subprocess.run(
-                    cmd,
+                    ["ssh", *cmd],
                     check=True,
                     text=True,
                     capture_output=True,

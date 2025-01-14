@@ -6,7 +6,7 @@ from register import register_lookup
 from rich.console import Console
 from typer import Typer
 
-from rev_tun.config import init, load_configs
+from rev_tun.config import init_conf_dir, load_configs
 from rev_tun.register import RegisterType
 
 app = Typer()
@@ -15,7 +15,7 @@ err_console = Console(stderr=True)
 
 
 @app.command()
-def main(
+def register(
     config_name: Annotated[
         str | None,
         typer.Argument(
@@ -38,7 +38,7 @@ def main(
             "--conf-dir",
             help="configuration directory path",
         ),
-    ] = init(),
+    ] = init_conf_dir(),
     log_dir_path: Annotated[
         Path,
         typer.Option(
@@ -47,9 +47,11 @@ def main(
         ),
     ] = Path("/var/log/rev-tun"),
 ):
-    configs = load_configs(conf_dir_path)
     register = register_lookup[register_type]
-    for config in configs:
+    for config in load_configs(conf_dir_path):
+        if config_name and config_name != config.name:
+            continue
+
         try:
             register.register(
                 config,

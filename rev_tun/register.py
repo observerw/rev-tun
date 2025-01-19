@@ -16,8 +16,6 @@ class Registrar(ABC):
 
 class SupervisorRegistrar(Registrar):
     def register(self, config: Config, *, log_dir_path: Path) -> None:
-        """Register the SSH tunnel as a supervisor program"""
-
         check_root()
 
         if not (sv_conf_dir_path := Path("/etc/supervisor/conf.d")).exists():
@@ -52,15 +50,10 @@ class SupervisorRegistrar(Registrar):
 
 class SystemdRegistrar(Registrar):
     def register(self, config: Config, *, log_dir_path: Path) -> None:
-        """Register the SSH tunnel as a systemd service"""
-
         check_root()
 
-        systemd_dir_path = Path("/etc/systemd/system")
-        if not systemd_dir_path.exists():
+        if not (systemd_dir_path := Path("/etc/systemd/system")).exists():
             raise FileNotFoundError("Systemd directory not found")
-
-        name = f"rev-tun-{config.name}"
 
         template = template_env.get_template("systemd.service.j2")
 
@@ -71,6 +64,7 @@ class SystemdRegistrar(Registrar):
             log_dir=log_dir_path,
         )
 
+        name = f"rev-tun-{config.name}"
         service_file = systemd_dir_path / f"{name}.service"
         service_file.write_text(service_content)
 
@@ -87,7 +81,6 @@ class SystemdRegistrar(Registrar):
 
 class ConsoleRegistrar(Registrar):
     def register(self, config: Config, *, log_dir_path: Path) -> None:
-        """Run the SSH tunnel command directly with retry logic"""
         cmd = config.command
 
         log_dir_path.mkdir(parents=True, exist_ok=True)

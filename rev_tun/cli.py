@@ -6,6 +6,7 @@ from register import register_lookup
 from rich.console import Console
 from typer import Typer
 
+from rev_tun import utils
 from rev_tun.config import init_conf_dir, load_configs
 from rev_tun.register import RegisterType
 
@@ -22,23 +23,30 @@ def register(
             help="config name",
         ),
     ] = None,
-    register_type: Annotated[
+    registrar_type: Annotated[
         RegisterType,
         typer.Option(
             "-r",
-            "--register",
+            "--registrar",
             help="register type",
             case_sensitive=False,
             show_default=True,
         ),
     ] = RegisterType.supervisor,
     conf_dir_path: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--conf-dir",
             help="configuration directory path",
         ),
-    ] = init_conf_dir(),
+    ] = None,
+    conf_file_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--conf-file",
+            help="single configuration file path",
+        ),
+    ] = None,
     log_dir_path: Annotated[
         Path,
         typer.Option(
@@ -47,16 +55,37 @@ def register(
         ),
     ] = Path("/var/log/rev-tun"),
 ):
-    register = register_lookup[register_type]
-    for config in load_configs(conf_dir_path):
+    if not (path := utils.mutually_exclusive(conf_dir_path, log_dir_path)):
+        raise ValueError("One of --conf-dir or --log-dir is required")
+
+    if not path.exists():
+        if path.is_file():
+            raise ValueError(f"{path} not exists")
+        if path.is_dir():
+            raise FileNotFoundError(f"{path} not exists, consider running `init` first")
+
+    registrar = register_lookup[registrar_type]
+
+    for config in load_configs(path):
         if config_name and config_name != config.name:
             continue
 
         try:
-            register.register(
-                config,
-                log_dir_path=log_dir_path,
-            )
+            registrar.register(config, log_dir_path=log_dir_path)
             console.print(f"{config.name} registered")
         except Exception as e:
             err_console.print(f"config {config.name} failed to register: {e}")
+
+
+@app.command()
+def init(
+    base_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--base-path",
+            help="base path",
+        ),
+    ] = None,
+):
+    path = init_conf_dir(base_path)
+    console.print(f"Configuration directory initialized at {path}")

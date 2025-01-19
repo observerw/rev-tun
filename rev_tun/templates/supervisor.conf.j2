@@ -3,5 +3,7 @@ command={{ command }}
 autostart=true
 autorestart=true
 startretries={{ retry }}
+{% if log_dir %}
 stderr_logfile={{ log_dir }}/{{ name }}.err.log
 stdout_logfile={{ log_dir }}/{{ name }}.out.log
+{% endif %}

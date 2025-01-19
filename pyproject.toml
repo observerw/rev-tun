@@ -1,8 +1,10 @@
 [project]
 name = "rev-tun"
 version = "0.1.0"
-description = "Tool to register ssh reverse tunnels to supervisor"
-authors = [{ name = 'observerw' }]
+description = "Tool to manage ssh reverse tunnels with ease"
+authors = [{ name = 'observerw', email = 'wozluohd@gmail.com' }]
+urls = { "Repository" = "https://github.com/observerw/rev-tun" }
+license = "MIT"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

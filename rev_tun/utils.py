@@ -8,7 +8,13 @@ from deepmerge import always_merger
 
 import rev_tun
 
-type NamingStyle = Literal["snake", "kebab", "camel", "pascal", "constant"]
+type NamingStyle = Literal[
+    "snake_style",
+    "kebab-style",
+    "camelStyle",
+    "PascalStyle",
+    "CONSTANT_STYLE",
+]
 
 
 def convert_to(name: str, style: NamingStyle) -> str:
@@ -24,15 +30,15 @@ def convert_to(name: str, style: NamingStyle) -> str:
     words = [word.lower() for word in words]
 
     match style:
-        case "snake":
+        case "snake_style":
             return "_".join(words)
-        case "kebab":
+        case "kebab-style":
             return "-".join(words)
-        case "camel":
+        case "camelStyle":
             return words[0] + "".join(word.capitalize() for word in words[1:])
-        case "pascal":
+        case "PascalStyle":
             return "".join(word.capitalize() for word in words)
-        case "constant":
+        case "CONSTANT_STYLE":
             return "_".join(word.upper() for word in words)
         case _:
             raise ValueError(f"Unsupported naming style: {style}")
@@ -47,6 +53,14 @@ def check_root(raise_exception: bool = True) -> bool:
 
 def merge(base: dict, update: dict) -> dict:
     return always_merger.merge(deepcopy(base), update)
+
+
+def mutually_exclusive[T](*args: T) -> T | None:
+    match [arg for arg in args if arg is not None]:
+        case [arg]:
+            return arg
+        case _:
+            return None
 
 
 template_env = jinja2.Environment(loader=jinja2.PackageLoader(rev_tun.__name__))

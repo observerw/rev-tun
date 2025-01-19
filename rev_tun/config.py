@@ -6,6 +6,7 @@ from importlib import resources as res
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Self
+from venv import logger
 
 import tomli
 from const import options, ssh_options
@@ -25,7 +26,7 @@ class ConfigModel(BaseModel, ABC):
             return data
 
         return {
-            convert_to(key, "snake"): value  #
+            convert_to(key, "snake_style"): value  #
             for key, value in data.items()
         }
 
@@ -135,7 +136,7 @@ class SSHConfig(ConfigModel):
         return [
             f"-o {camel_key}={value}"
             for key, value in self
-            if (camel_key := convert_to(key, "camel")) in ssh_options
+            if (camel_key := convert_to(key, "camelStyle")) in ssh_options
         ]
 
 
@@ -190,16 +191,14 @@ class Config(ConfigModel):
         if not config_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
-        with config_path.open("rb") as f:
-            try:
-                raw_config: dict[str, Any] = tomli.load(f)
-                if default:
-                    raw_config = merge(default, raw_config)
-                raw_config["name"] = config_path.stem
+        raw_config = config_path.read_text(encoding="utf-8")
+        try:
+            raw_config = merge(default or {}, tomli.loads(raw_config))
+            raw_config["name"] = config_path.stem
 
-                return cls.model_validate(raw_config)
-            except Exception as e:
-                raise ValueError(f"Failed to parse config file: {e}")
+            return cls.model_validate(raw_config)
+        except Exception as e:
+            raise ValueError(f"Failed to parse config file: {e}")
 
     @property
     def command(self) -> list[str]:
@@ -211,38 +210,49 @@ class Config(ConfigModel):
         ]
 
 
-def load_configs(conf_dir_path: Path) -> Iterable[Config]:
-    default_config_path = conf_dir_path / "default.toml"
-    default_config = (
-        tomli.loads(default_config_path.read_text())
-        if default_config_path.exists()
-        else None
+def load_default_config(path: Path | None = None) -> dict:
+    if path and (default_conf_path := path / "default.toml").exists():
+        return tomli.loads(default_conf_path.read_text())
+
+    logger.warning("Default config not found, using built-in default config")
+
+    with res.as_file(res.files(rev_tun.templates)) as template_path:
+        return tomli.loads((template_path / "default.toml").read_text())
+
+
+def load_configs(path: Path) -> Iterable[Config]:
+    default = load_default_config(path)
+
+    return (
+        (
+            Config.load(conf_path, default)
+            for conf_path in conf_dir_path.iterdir()
+            if conf_path.suffix == ".toml"  #
+            and not conf_path.stem.startswith("_")
+        )
+        if (conf_dir_path := path / "conf.d").is_dir()
+        else [Config.load(path, default)]
     )
 
-    config_paths = (
-        path  #
-        for path in (conf_dir_path / "conf.d").iterdir()
-        if path.suffix == ".toml"
-    )
 
-    return (Config.load(config_path, default_config) for config_path in config_paths)
-
-
-def init_conf_dir() -> Path:
-    conf_dir_path = (
+def init_conf_dir(path: Path | None = None) -> Path:
+    path = path or (
         Path("/etc/rev-tun")  #
         if check_root(raise_exception=False)
         else Path.home() / ".rev-tun"
     )
 
-    conf_dir_path.mkdir(parents=True, exist_ok=True)
-    (conf_dir_path / "conf.d").mkdir(exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
+    (conf_path := path / "conf.d").mkdir(exist_ok=True)
 
-    # Copy default config if not exists
-    default_config_path = conf_dir_path / "default.toml"
+    def copy_template(name: str, target_path: Path) -> None:
+        if (target_path / name).exists():
+            return
 
-    if not default_config_path.exists():
         with res.as_file(res.files(rev_tun.templates)) as template_path:
-            shutil.copy2(template_path, default_config_path)
+            shutil.copy2(template_path / name, target_path / name)
 
-    return conf_dir_path
+    copy_template("default.toml", path)
+    copy_template("_example.toml", conf_path)
+
+    return path

@@ -39,28 +39,41 @@ sudo rev-tun [config-name] --register [supervisor|systemd] [options]
 - `-r, --register`: Specify the registrar type (default: `supervisor`)
   - `supervisor`: Use Supervisor to manage services (by generating a supervisor configuration file)
   - `systemd`: Use Systemd to manage services
-  - `console`: Run directly in console
+  - `console`: Run directly
 
-- `--conf-dir`: Specify configuration file directory (default: `/etc/rev-tun`)
+- `--conf-dir`: Specify configuration file directory (default: `/etc/rev-tun` for root, `~/.rev-tun` for user)
 - `--log-dir`: Specify log file directory (default: `/var/log/rev-tun`)
 
 ## Examples
 
+Before running, you may need a configuration directory:
+
+```bash
+# Create a configuration directory at /etc/rev-tun
+rev-tun init
+
+# Create a configuration directory at other location
+rev-tun init --conf-dir /var/rev-tun
+```
+
+Then you can run the tool:
+
 ```bash
 # Load all configurations and register with supervisor
-rev-tun
+rev-tun register
 
 # Load specific configuration and register with supervisor
-rev-tun my-tunnel
+# (Assuming the configuration file `/etc/rev-tun/my-tunnel.toml` exists)
+rev-tun register my-tunnel
 
-# Use systemd registrar
-rev-tun --register systemd
+# Run in console
+rev-tun register --registrar console
 
 # Specify configuration directory
-rev-tun --conf-dir /etc/rev-tun
+rev-tun register --conf-dir /var/rev-tun
 
-# Run in console mode
-rev-tun --register console
+# Or, register with a single configuration file
+rev-tun register --conf-file ~/my-tunnel.toml
 ```
 
 # Configuration File

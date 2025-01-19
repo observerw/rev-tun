@@ -9,8 +9,10 @@ Restart=always
 RestartSec=60
 StartLimitInterval=0
 StartLimitBurst={{ retry }}
+{% if log_dir %}
 StandardError=append:{{ log_dir }}/{{ name }}.err.log
 StandardOutput=append:{{ log_dir }}/{{ name }}.out.log
+{% endif %}
 
 [Install]
 WantedBy=multi-user.target

@@ -3,10 +3,8 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 
-from utils import template_env
-
 from rev_tun.config import Config
-from rev_tun.utils import check_root
+from rev_tun.utils import check_root, template_env
 
 
 class Registrar(ABC):

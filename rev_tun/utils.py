@@ -45,7 +45,7 @@ def convert_to(name: str, style: NamingStyle) -> str:
 
 
 def check_root(raise_exception: bool = True) -> bool:
-    if (is_root := os.geteuid() != 0) and raise_exception:
+    if not (is_root := os.geteuid() == 0) and raise_exception:
         raise PermissionError("Root privileges are required")
 
     return is_root

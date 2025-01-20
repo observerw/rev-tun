@@ -9,12 +9,12 @@ from typing import Any, Self
 from venv import logger
 
 import tomli
-from const import options, ssh_options
 from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
 from pydantic.networks import IPvAnyAddress
 
 import rev_tun
 import rev_tun.templates
+from rev_tun.const import options, ssh_options
 from rev_tun.utils import check_root, convert_to, merge
 
 

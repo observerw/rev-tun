@@ -2,15 +2,14 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from register import register_lookup
 from rich.console import Console
 from typer import Typer
 
 from rev_tun import utils
 from rev_tun.config import init_conf_dir, load_configs
-from rev_tun.register import RegisterType
+from rev_tun.register import RegisterType, register_lookup
 
-app = Typer()
+app = Typer(add_completion=False)
 console = Console()
 err_console = Console(stderr=True)
 
@@ -55,6 +54,10 @@ def register(
         ),
     ] = Path("/var/log/rev-tun"),
 ):
+    """
+    Register configuration to supervisor, systemd, or others.
+    """
+
     if not (path := utils.mutually_exclusive(conf_dir_path, log_dir_path)):
         raise ValueError("One of --conf-dir or --log-dir is required")
 
@@ -87,5 +90,9 @@ def init(
         ),
     ] = None,
 ):
+    """
+    Initialize configuration directory.
+    """
+
     path = init_conf_dir(base_path)
     console.print(f"Configuration directory initialized at {path}")

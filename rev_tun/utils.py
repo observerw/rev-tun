@@ -1,14 +1,14 @@
 import os
 import re
 from copy import deepcopy
-from typing import Literal
+from typing import Literal, TypeVar
 
 import jinja2
 from deepmerge import always_merger
 
 import rev_tun
 
-type NamingStyle = Literal[
+NamingStyle = Literal[
     "snake_style",
     "kebab-style",
     "camelStyle",
@@ -55,7 +55,10 @@ def merge(base: dict, update: dict) -> dict:
     return always_merger.merge(deepcopy(base), update)
 
 
-def mutually_exclusive[T](*args: T) -> T | None:
+T = TypeVar("T")
+
+
+def mutually_exclusive(*args: T) -> T | None:
     match [arg for arg in args if arg is not None]:
         case [arg]:
             return arg

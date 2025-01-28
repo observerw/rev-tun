@@ -5,7 +5,7 @@ from enum import Enum
 from importlib import resources as res
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Any, Self
+from typing import Any
 from venv import logger
 
 import tomli
@@ -187,7 +187,7 @@ class Config(ConfigModel):
     services: ServicesConfig = ServicesConfig()
 
     @classmethod
-    def load(cls, config_path: Path, default: dict | None = None) -> Self:
+    def load(cls, config_path: Path, default: dict | None = None) -> "Config":
         if not config_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
@@ -205,8 +205,8 @@ class Config(ConfigModel):
         return [
             command
             for _, sub_config in self
-            if isinstance(sub_config, ConfigModel)
             for command in sub_config.command
+            if isinstance(sub_config, ConfigModel)
         ]
 
 

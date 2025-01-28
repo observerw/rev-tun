@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
@@ -13,10 +14,28 @@ class Registrar(ABC):
 
 
 class SupervisorRegistrar(Registrar):
+    @staticmethod
+    def _conf_dir_path() -> list[Path]:
+        match sys.platform:
+            case "linux":
+                return [Path("/etc/supervisor/conf.d")]
+            case "darwin":
+                return [
+                    Path("/usr/local/etc/supervisor.d"),
+                    Path("/opt/homebrew/etc/supervisor.d"),
+                ]
+            case _:
+                raise NotImplementedError(f"Unsupported platform: {sys.platform}")
+
     def register(self, config: Config, *, log_dir_path: Path) -> None:
         check_root()
 
-        if not (sv_conf_dir_path := Path("/etc/supervisor/conf.d")).exists():
+        if not (
+            sv_conf_dir_path := next(
+                (path for path in self._conf_dir_path() if path.exists()),
+                None,
+            )
+        ):
             raise FileNotFoundError("Supervisor config directory not found")
 
         name = f"rev-tun-{config.name}"

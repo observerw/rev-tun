@@ -174,7 +174,7 @@ You can override the default configuration by adding the corresponding fields in
 
 ### `services.*`
 
-| Field | Description | Default |
-| --- | --- | --- |
-| `local-ports` | Local port(s) to forward | - |
-| `remote-ports` | Remote port(s) to forward | - |
+| Field          | Description               | Default |
+| -------------- | ------------------------- | ------- |
+| `local-ports`  | Local port(s) to forward  | -       |
+| `remote-ports` | Remote port(s) to forward | -       |

@@ -1,6 +1,6 @@
 [project]
 name = "rev-tun"
-version = "0.1.1"
+version = "0.1.2"
 description = "Tool to manage ssh reverse tunnels with ease"
 authors = [{ name = 'observerw', email = 'wozluohd@gmail.com' }]
 urls = { "Repository" = "https://github.com/observerw/rev-tun" }

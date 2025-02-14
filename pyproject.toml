@@ -19,5 +19,8 @@ dependencies = [
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.package-data]
+rev_tun = ["templates/*"]
+
 [project.scripts]
 rev-tun = "rev_tun.cli:app"

@@ -1,4 +1,3 @@
-import shutil
 from abc import ABC
 from collections.abc import Iterable
 from enum import Enum
@@ -216,8 +215,8 @@ def load_default_config(path: Path | None = None) -> dict:
 
     logger.warning("Default config not found, using built-in default config")
 
-    with res.as_file(res.files(rev_tun.templates)) as template_path:
-        return tomli.loads((template_path / "default.toml").read_text())
+    default = (res.files(rev_tun.templates) / "default.toml").read_text()
+    return tomli.loads(default)
 
 
 def load_configs(path: Path) -> Iterable[Config]:
@@ -249,8 +248,8 @@ def init_conf_dir(path: Path | None = None) -> Path:
         if (target_path / name).exists():
             return
 
-        with res.as_file(res.files(rev_tun.templates)) as template_path:
-            shutil.copy2(template_path / name, target_path / name)
+        template_content = (res.files(rev_tun.templates) / name).read_bytes()
+        Path(target_path / name).write_bytes(template_content)
 
     copy_template("default.toml", path)
     copy_template("_example.toml", conf_path)
